@@ -16,8 +16,8 @@ public class ConsoleController {
     private ConversorDatos dataConvert = new ConversorDatos();
     private LibroRepository repository;
     private final String BASE_URL = "https://gutendex.com/books/";
-    private List<Libro> books;
-    private String bookSelected;
+    private List<Libro> libros;
+    private String libroSeleccionado;
 
     public ConsoleController ( LibroRepository repository ) {
         this.repository = repository;
@@ -40,130 +40,119 @@ public class ConsoleController {
 
             switch (option) {
                 case 1:
-                    getBookData();
+                    obtenerDatosLibro();
                     break;
                 case 2:
-                    showStoredBooks();
+                    mostrarLibrosAlmacenados();
                     break;
                 case 3:
-                    authorsListStored();
+                    listarAutoresAlmacenados();
                     break;
                 case 4:
-                    getAuthorYear();
+                    obtenerAutoresPorAno();
                     break;
                 case 5:
-                    findBooksByLanguages();
+                    encontrarLibrosPorIdioma();
                     break;
             }
         }
     }
 
-
-    private String getDataFromUser () {
+    private String obtenerDatosDeUsuario () {
         System.out.println("Introduzca el nombre del libro que desea buscar");
-        bookSelected = scanner.nextLine();
-        return bookSelected;
+        libroSeleccionado = scanner.nextLine();
+        return libroSeleccionado;
     }
 
-    // Función para obtener los datos del libro de la API
-    private DatosResultado getBookDataFromAPI ( String bookTitle ) {
-        var json = requestAPI.getData(BASE_URL + "?search=%20" + bookTitle.replace(" ", "+"));
-        var data = dataConvert.getData(json, DatosResultado.class);
+    private DatosResultado obtenerDatosLibroDeAPI ( String tituloLibro ) {
+        var json = requestAPI.getData(BASE_URL + "?search=%20" + tituloLibro.replace(" ", "+"));
+        var datos = dataConvert.getData(json, DatosResultado.class);
 
-        return data;
+        return datos;
     }
 
-    private Optional<Libro> getBookInfo ( DatosResultado bookData, String bookTitle ) {
-        Optional<Libro> books = bookData.resultados().stream()
-                .filter(l -> l.titulo().toLowerCase().contains(bookTitle.toLowerCase()))
+    private Optional<Libro> obtenerInfoLibro ( DatosResultado datosLibro, String tituloLibro ) {
+        Optional<Libro> libros = datosLibro.resultados().stream()
+                .filter(l -> l.titulo().toLowerCase().contains(tituloLibro.toLowerCase()))
                 .map(b -> new Libro(b.titulo(), b.idiomas(), b.descargas(), b.autores()))
                 .findFirst();
-        return books;
+        return libros;
     }
 
     private void buscarSerieWeb () {
-        String titulo = getDataFromUser();
-        DatosResultado datos = getBookDataFromAPI(titulo);
-        Libro book = new Libro(datos.resultados());
-        repository.save(book);
+        String titulo = obtenerDatosDeUsuario();
+        DatosResultado datos = obtenerDatosLibroDeAPI(titulo);
+        Libro libro = new Libro(datos.resultados());
+        repository.save(libro);
 
-        System.out.println(book);
+        System.out.println(libro);
     }
 
+    private Optional<Libro> obtenerDatosLibro () {
+        String tituloLibro = obtenerDatosDeUsuario();
+        DatosResultado datosLibro = obtenerDatosLibroDeAPI(tituloLibro);
+        Optional<Libro> libro = obtenerInfoLibro(datosLibro, tituloLibro);
 
-    // Función principal que utiliza las funciones anteriores
-    private Optional<Libro> getBookData () {
-        String bookTitle = getDataFromUser();
-        DatosResultado bookInfo = getBookDataFromAPI(bookTitle);
-        Optional<Libro> book = getBookInfo(bookInfo, bookTitle);
-
-        if ( book.isPresent() ) {
-            var b = book.get();
+        if ( libro.isPresent() ) {
+            var b = libro.get();
             repository.save(b);
             System.out.println(b);
         } else {
             System.out.println("\nLibro no encontrado\n");
         }
 
-        return book;
+        return libro;
     }
 
-    // funcion para mostrar los libros registrados
-    private void showStoredBooks () {
-        books = repository.findAll();
+    private void mostrarLibrosAlmacenados () {
+        libros = repository.findAll();
 
-        books.stream()
+        libros.stream()
                 .sorted(Comparator.comparing(Libro::getTitulo))
                 .forEach(System.out::println);
     }
 
-    // Lista de autores registrados
+    private void listarAutoresAlmacenados () {
+        List<DatosAutor> autores = repository.getAuthorsInfo();
 
-    private void authorsListStored () {
-        List<DatosAutor> authors = repository.getAuthorsInfo();
-
-        authors.stream()
+        autores.stream()
                 .sorted(Comparator.comparing(DatosAutor::getNombre))
-                .forEach(a -> System.out.printf("Author: %s Born: %s Death: %s\n",
+                .forEach(a -> System.out.printf("Autor: %s Nacimiento: %s Muerte: %s\n",
                         a.getNombre(), a.getAnoNacimiento(), a.getAnoMuerte()));
     }
 
-    // obtener autores vivos despues de determinado año
-
-    public void getAuthorYear () {
-        System.out.println("Intorduzca el año a aprtir del cual desea saber que un author estaba vivo");
-        int date = scanner.nextInt();
+    public void obtenerAutoresPorAno () {
+        System.out.println("Introduzca el año a partir del cual desea saber que un autor estaba vivo");
+        int fecha = scanner.nextInt();
         scanner.nextLine();
 
-        List<DatosAutor> authorInfos = repository.getAuthorLiveAfter(date);
+        List<DatosAutor> informacionAutores = repository.getAuthorLiveAfter(fecha);
 
-        authorInfos.stream()
+        informacionAutores.stream()
                 .sorted(Comparator.comparing(DatosAutor::getNombre))
-                .forEach(a -> System.out.printf("Author: %s Born: %s Death: %s\n",
+                .forEach(a -> System.out.printf("Autor: %s Nacimiento: %s Muerte: %s\n",
                         a.getNombre(), a.getAnoNacimiento(), a.getAnoMuerte()));
     }
 
-    // encontrar libros por idioma
-
-    public void findBooksByLanguages () {
-        String languagesList = """
+    public void encontrarLibrosPorIdioma () {
+        String listaIdiomas = """
                 Elija entre las opciones del idioma del libro que desea buscar
-                
+
                 en - Inglés
                 es - Español
                 fr - Francés
                 it - Italiano
                 pt - Portugués
-                
+
                 """;
-        System.out.println(languagesList);
-        String text =  scanner.nextLine();
+        System.out.println(listaIdiomas);
+        String texto =  scanner.nextLine();
 
-        var language = Idioma.desdeString(text);
+        var idioma = Idioma.desdeString(texto);
 
-        List<Libro> bookLanguage = repository.findByLanguages(language);
+        List<Libro> librosIdioma = repository.findByLanguages(idioma);
 
-        bookLanguage.stream()
+        librosIdioma.stream()
                 .forEach(System.out::println);
     }
 }
