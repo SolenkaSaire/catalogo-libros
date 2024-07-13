@@ -1,17 +1,18 @@
 package org.catalogo.model;
 
-import org.catalogo.model.Autor;
-import org.catalogo.model.DatosLibro;
-import org.catalogo.model.Idioma;
-import org.catalogo.model.DatosAutor;
-
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Table(name = "libros")
+@Getter
+@Setter
+@ToString(includeFieldNames=true, of={"id", "titulo", "idiomas", "descargas"})
 public class Libro {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,6 +20,7 @@ public class Libro {
     @Column(unique = true)
     private String titulo;
     @OneToMany(mappedBy = "libro", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @ToString.Exclude
     private List<DatosAutor> autores;
     @Enumerated(EnumType.STRING)
     private Idioma idiomas;
@@ -41,54 +43,8 @@ public class Libro {
         }
     }
 
-
-    public Long getId () {
-        return id;
-    }
-
-    public void setId ( Long id ) {
-        this.id = id;
-    }
-
-    public Double getDescargas () {
-        return descargas;
-    }
-
-    public void setDescargas ( Double descargas ) {
-        this.descargas = descargas;
-    }
-
-    public Idioma getIdiomas () {
-        return idiomas;
-    }
-
-    public void setIdiomas ( Idioma idiomas ) {
-        this.idiomas = idiomas;
-    }
-
-    public String getTitulo () {
-        return titulo;
-    }
-
-    public void setTitulo ( String titulo ) {
-        this.titulo = titulo;
-    }
-
-    public List<DatosAutor> getAutores () {
-        return autores;
-    }
-
     public void setAutores ( List<DatosAutor> autores ) {
         autores.forEach(e -> e.setLibro(this));
         this.autores = autores;
-    }
-
-    @Override
-    public String toString () {
-        return
-                "Titulo='" + titulo + '\'' + "\n" +
-                        "Autores=" + autores + "\n" +
-                        "Idiomas=" + idiomas + "\n" +
-                        "Descargas=" + descargas + "\n";
     }
 }
